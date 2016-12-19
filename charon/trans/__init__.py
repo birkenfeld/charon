@@ -22,12 +22,17 @@
 #
 # *****************************************************************************
 
+"""Python -> ST translator."""
+
 import os
 import ast
 import sys
 
-from . import FatalError
-from . import ast as st
+from . import st_ast as st
+
+
+class FatalError(Exception):
+    pass
 
 
 class Source:
@@ -236,11 +241,6 @@ class AstChecker(ast.NodeVisitor):
         self.bail(node, 'unsupported decorator: %s' % deco.func.id)
 
     def visit_If(self, node):
-        # special case for main func
-        if isinstance(node.test, ast.Compare) and \
-           isinstance(node.test.left, ast.Name) and \
-           node.test.left.id == '__name__':
-            return None
         # XXX: recognize switch/case
         expr = self.visit(node.test)
         thens = self.visit_all(node.body)
@@ -273,6 +273,10 @@ class AstChecker(ast.NodeVisitor):
         self.bail(node, 'unhandled binop?')
 
     def visit_Assign(self, node):
+        # XXX: special case for globals assignment
+        if isinstance(node.targets[0], ast.Name) and \
+           node.targets[0].id == 'g':
+            return None
         if len(node.targets) > 1:
             self.bail(node, 'only one assign target supported')
         lval = self.visit(node.targets[0])

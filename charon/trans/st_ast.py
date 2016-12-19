@@ -22,6 +22,8 @@
 #
 # *****************************************************************************
 
+"""AST for ST code."""
+
 
 class NodeMeta(type):
     def __init__(cls, name, bases, attrs):

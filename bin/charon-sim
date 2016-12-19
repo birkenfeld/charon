@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #  -*- coding: utf-8 -*-
 # *****************************************************************************
 # Python/ST language tools
@@ -33,23 +33,13 @@ if sys.version_info[0] < 3:
 
 sys.path.insert(0, path.dirname(path.dirname(path.realpath(__file__))))
 
-from charon import FatalError, Translator, Source
+from charon.sim.st import run
 
 parser = argparse.ArgumentParser()
 parser.add_argument('input', help='input project; either a file or directory')
 
 opts = parser.parse_args()
 
-try:
-    success = Translator(Source.new(opts.input)).run()
-except FatalError as e:
-    sys.stderr.write('*** Fatal error: %s\n' % e)
-    sys.exit(1)
-except Exception as e:
-    raise
-    sys.stderr.write('*** Fatal error: internal exception (%s): %s\n' %
-                     (e.__class__.__name__, e))
-    sys.stderr.write('Please report as a bug.\n')
-    sys.exit(1)
-else:
-    sys.exit(not success)
+ns = {}
+exec(open(opts.input).read(), ns)
+run(ns['g'], ns['Main'])

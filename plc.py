@@ -1,8 +1,8 @@
 # Testing PLC code.
 
-from charon.rt.st import Var, Struct, Globals, program, \
+from charon.sim.st import Var, Struct, Globals, program, \
     run, array, word, dword, bool, byte, real, string
-from charon.rt.funcs import adr, sizeof, memset, memcpy
+from charon.sim.funcs import adr, sizeof, memset, memcpy
 
 
 class ST_DeviceInfo(Struct):
@@ -39,6 +39,8 @@ class Global(Globals):
     sPLCName = Var(string(34), 'jemsc')
     sPLCVersion = Var(string(34), '0.0.1alpha')
     iCycle = Var(word, 0)
+
+g = Global()
 
 
 @program(
@@ -146,8 +148,3 @@ def Implementierung(v):
 def Main(v):
     Indexer()
     Implementierung()
-
-
-if __name__ == '__main__':
-    g = Global()
-    run(g, Main)
