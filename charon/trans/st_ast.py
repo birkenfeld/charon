@@ -54,8 +54,24 @@ class NodeMeta(type):
 
 class Node(metaclass=NodeMeta):
 
+    fields = []
+    parent = None
+
     def generate(self, out):
         raise NotImplementedError
+
+    def children(self):
+        for (fld, spec) in self.fields:
+            if isinstance(spec, list):
+                if issubclass(spec[0], Node):
+                    yield from getattr(self, fld)
+            elif issubclass(spec, Node):
+                yield getattr(self, fld)
+
+    def fixup_parents(self):
+        for child in self.children():
+            child.parent = self
+            child.fixup_parents()
 
 
 # -- Expressions --------------------------------------------------------------
@@ -196,12 +212,12 @@ class KwArg(Node):
 
 class StructInitializer(Expr):
     fields = [
-        ('fields', [KwArg]),
+        ('items', [KwArg]),
     ]
 
     def generate(self, out):
         out.push('(')
-        out.push_sep(', ', self.fields)
+        out.push_sep(', ', self.items)
         out.push(')')
 
 
