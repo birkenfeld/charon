@@ -108,6 +108,9 @@ class NumProxy:
     def __bool__(self):
         return self.value.__bool__()
 
+    def __float__(self):
+        return self.value.__float__()
+
     def __neg__(self):
         return self.value.__neg__()
 

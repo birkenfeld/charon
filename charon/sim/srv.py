@@ -44,9 +44,11 @@ class ConnectionHandler(socketserver.BaseRequestHandler):
             try:
                 resp = self.handle_req(lgth, func, data)
             except ModbusExc as e:
+                # print(e)
                 msg = pack('>IHBBB', tidpid, lgth, unit, func | 0x80,
                            e.args[0])
-            except Exception:
+            except Exception as e:
+                # print(e)
                 msg = pack('>IHBBB', tidpid, lgth, unit, func | 0x80, 1)
             else:
                 msg = pack('>IHBB', tidpid, 2 + len(resp), unit, func) + resp
@@ -69,12 +71,19 @@ class ConnectionHandler(socketserver.BaseRequestHandler):
             if func in (3, 4):
                 # read data
                 nreg, = unpack('>H', data[2:])
-                read = self.server.plc.read(baddr, 2*nreg)
+                # print("read %d regs from %d" % (nreg, addr))
+                try:
+                    read = self.server.plc.read(baddr, 2*nreg)
+                except RuntimeError:
+                    read = b''.join(self.server.plc.read(baddr+2*i, 2)
+                                    for i in range(nreg))
+                # print("read data: %r" % read)
                 return pack('>B', 2*nreg) + \
                     b''.join(pack('>H', *unpack('H', read[2*i:2*i+2]))
                              for i in range(nreg))
             elif func == 6:
                 wdata = pack('H', *unpack('>H', data[2:4]))
+                # print("write 0x%04x to %d" % (wdata, addr))
                 self.server.plc.write(baddr, wdata)
                 return data
             elif func == 16:
@@ -82,6 +91,8 @@ class ConnectionHandler(socketserver.BaseRequestHandler):
                 assert dbytes == 2*nreg
                 wdata = b''.join(pack('H', *unpack('>H', data[2*i+5:2*i+7]))
                                  for i in range(nreg))
+                # print("write %r to %d" % ([unpack('>H', data[2*i+5:2*i+7])
+                #                            for i in range(nreg)], addr))
                 self.server.plc.write(baddr, wdata)
                 return data[:4]
 

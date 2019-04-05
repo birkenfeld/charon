@@ -61,8 +61,7 @@ class Memory(object):
         if there are at least size bytes left.
         """
         if not self.allocations_sorted:
-            self.allocations.sort()
-            # print(self.allocations)
+            self.allocations.sort(key=lambda x: x[1])
             self.allocations_sorted = True
         for (osize, oaddr, obj) in self.allocations:
             if oaddr <= addr and addr + size <= oaddr + osize:
@@ -398,23 +397,21 @@ class Struct(Value, metaclass=StructMeta):
         return b''.join(self.__dict__[var].mem_read() for (_, var) in self.VARS)
 
     def mem_write(self, offset, data):
-        skip = 0
-        for (name, _) in self.VARS:
-            if self.OFFSET[name] == offset:
-                break
-            skip += 1
-        else:
-            raise RuntimeError('partial struct element write')
-        for (i, (name, var)) in enumerate(self.VARS):
-            if i < skip:
-                continue
+        for (name, var) in self.VARS:
+            ofs = self.OFFSET[name]
             size = var.dtype.sizeof()
-            if len(data) < size:
-                raise RuntimeError('partial struct element write')
-            d, data = data[:size], data[size:]
-            self.__dict__[var].mem_write(0, d)
-            if not data:
-                break
+            if ofs <= offset < ofs + size:
+                # at least parial write
+                # overlap
+                o = min(ofs + size - offset, len(data))
+                d, data = data[:o], data[o:]
+                # (partial) write
+                self.__dict__[var].mem_write(offset - ofs, d)
+                if data:
+                    self.mem_write(offset + o, data)
+                return
+        raise RuntimeError("failed to write %d bytes @ offset %d" %
+                           (len(data), offset))
 
 
 class Globals(Struct):
